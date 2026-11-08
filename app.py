@@ -74,6 +74,18 @@ CREATE TABLE IF NOT EXISTS deudas (
 )
 """)
 
+# NUEVA TABLA PARA METAS DE AHORRO
+sql("""
+CREATE TABLE IF NOT EXISTS metas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    titulo TEXT NOT NULL,
+    monto_objetivo REAL NOT NULL,
+    monto_actual REAL NOT NULL,
+    fecha_limite TEXT NOT NULL,
+    usuario_id INTEGER NOT NULL
+)
+""")
+
 
 # ---------- Contraseñas ----------
 def hashear(clave):
@@ -145,7 +157,12 @@ with st.sidebar:
   st.markdown("---")
   st.subheader("Menú principal")
   menu = st.radio(
-      "Selecciona un apartado:", ["📉 Control de Gastos", "💳 Control de Deudas"]
+      "Selecciona un apartado:",
+      [
+          "📉 Control de Gastos",
+          "💳 Control de Deudas",
+          "🎯 Metas de Ahorro",
+      ],
   )
 
 # ==================== APARTADO: GASTOS ====================
@@ -216,7 +233,6 @@ if menu == "📉 Control de Gastos":
     st.subheader("Historial de Gastos")
     st.dataframe(df, hide_index=True, use_container_width=True)
 
-    # --- NUEVO: APARTADO PARA EDITAR O BORRAR GASTOS ---
     with st.expander("✏️ Editar o 🗑️ Borrar un Gasto"):
       id_gasto_sel = st.number_input(
           "Ingresa el ID del gasto a modificar/borrar",
@@ -225,7 +241,6 @@ if menu == "📉 Control de Gastos":
           key="input_edit_gasto",
       )
 
-      # Buscar si existe el gasto para ese usuario
       gasto_encontrado = sql(
           "SELECT fecha, categoria, descripcion, monto FROM gastos WHERE id ="
           " ? AND usuario_id = ?",
@@ -233,7 +248,6 @@ if menu == "📉 Control de Gastos":
       )
 
       if not gasto_encontrado.empty:
-        f_act = gasto_encontrado.loc[0, "fecha"]
         c_act = gasto_encontrado.loc[0, "categoria"]
         d_act = gasto_encontrado.loc[0, "descripcion"]
         m_act = float(gasto_encontrado.loc[0, "monto"])
@@ -333,7 +347,6 @@ elif menu == "💳 Control de Deudas":
   else:
     st.dataframe(df_deudas, hide_index=True, use_container_width=True)
 
-    # --- NUEVO: APARTADO PARA EDITAR O BORRAR DEUDAS ---
     with st.expander("✏️ Editar o 🗑️ Borrar una Deuda"):
       id_deuda_sel = st.number_input(
           "Ingresa el ID de la deuda a modificar/borrar",
@@ -350,7 +363,6 @@ elif menu == "💳 Control de Deudas":
 
       if not deuda_encontrada.empty:
         p_act = deuda_encontrada.loc[0, "persona"]
-        t_act = deuda_encontrada.loc[0, "tipo"]
         mt_act = float(deuda_encontrada.loc[0, "monto_total"])
         mp_act = float(deuda_encontrada.loc[0, "monto_pagado"])
         e_act = deuda_encontrada.loc[0, "estado"]
@@ -395,6 +407,141 @@ elif menu == "💳 Control de Deudas":
               [int(id_deuda_sel), UID],
           )
           st.success("Deuda eliminada correctamente.")
+          st.rerun()
+      else:
+        st.info(
+            "Ingresa un ID válido de la lista superior para editar o borrar."
+        )
+
+# ==================== APARTADO: METAS DE AHORRO (NUEVO) ====================
+elif menu == "🎯 Metas de Ahorro":
+  st.header("🎯 Metas y Objetivos de Ahorro")
+
+  with st.form("nueva_meta", clear_on_submit=True):
+    c1, c2 = st.columns(2)
+    with c1:
+      titulo_meta = st.text_input(
+          "Nombre de la Meta", placeholder="Ej. Viaje, Laptop nueva, Colchón"
+      )
+      monto_objetivo = st.number_input(
+          "Monto Objetivo ($)", min_value=1.0, step=100.0
+      )
+    with c2:
+      monto_actual = st.number_input(
+          "Dinero ahorrado actualmente ($)", min_value=0.0, step=50.0
+      )
+      fecha_limite_meta = st.date_input(
+          "Fecha límite estimada", value=date.today()
+      )
+
+    guardar_meta = st.form_submit_button("Crear Meta de Ahorro 🚀")
+
+  if guardar_meta:
+    if monto_objetivo <= 0:
+      st.warning("El monto objetivo debe ser mayor a cero.")
+    else:
+      sql(
+          "INSERT INTO metas (titulo, monto_objetivo, monto_actual,"
+          " fecha_limite, usuario_id) VALUES (?, ?, ?, ?, ?)",
+          [
+              titulo_meta,
+              float(monto_objetivo),
+              float(monto_actual),
+              fecha_limite_meta.isoformat(),
+              UID,
+          ],
+      )
+      st.success("¡Meta de ahorro creada con éxito!")
+      st.rerun()
+
+  # Consultar metas del usuario
+  df_metas = sql(
+      "SELECT id, titulo, monto_objetivo, monto_actual, fecha_limite FROM metas"
+      " WHERE usuario_id = ? ORDER BY id DESC",
+      [UID],
+  )
+
+  st.subheader("Tus Metas Activas")
+  if df_metas.empty:
+    st.info("Aún no tienes metas de ahorro registradas. ¡Crea una arriba!")
+  else:
+    # Mostrar tarjetas con barras de progreso visuales para cada meta
+    for index, row in df_metas.iterrows():
+      m_id = int(row["id"])
+      titulo = row["titulo"]
+      objetivo = float(row["monto_objetivo"])
+      actual = float(row["monto_actual"])
+      f_limite = row["fecha_limite"]
+
+      # Calcular porcentaje (máximo 1.0 para la barra de Streamlit)
+      porcentaje = min(actual / objetivo, 1.0) if objetivo > 0 else 0.0
+      porcentaje_txt = (actual / objetivo) * 100 if objetivo > 0 else 0.0
+
+      st.markdown(f"### 🎯 ID [{m_id}] - {titulo}")
+      col_p1, col_p2 = st.columns([3, 1])
+      with col_p1:
+        st.progress(
+            porcentaje,
+            text=f"Ahorrado: ${actual:,.2f} de ${objetivo:,.2f} ({porcentaje_txt:.1f}%)",
+        )
+      with col_p2:
+        st.write(f"📅 Meta: {f_limite}")
+      st.markdown("---")
+
+    st.subheader("Historial y Gestión de Metas")
+    st.dataframe(df_metas, hide_index=True, use_container_width=True)
+
+    with st.expander("✏️ Editar o 🗑️ Borrar una Meta"):
+      id_meta_sel = st.number_input(
+          "Ingresa el ID de la meta a modificar/borrar",
+          min_value=1,
+          step=1,
+          key="input_edit_meta",
+      )
+
+      meta_encontrada = sql(
+          "SELECT titulo, monto_objetivo, monto_actual FROM metas WHERE id = ?"
+          " AND usuario_id = ?",
+          [int(id_meta_sel), UID],
+      )
+
+      if not meta_encontrada.empty:
+        tit_act = meta_encontrada.loc[0, "titulo"]
+        mo_act = float(meta_encontrada.loc[0, "monto_objetivo"])
+        ma_act = float(meta_encontrada.loc[0, "monto_actual"])
+
+        with st.form("form_editar_meta"):
+          st.write(f"Editando la meta con ID: **{id_meta_sel}**")
+          nuevo_tit = st.text_input("Nuevo Nombre", value=str(tit_act))
+          nuevo_obj = st.number_input(
+              "Nuevo Monto Objetivo ($)", value=mo_act, min_value=1.0
+          )
+          nuevo_act = st.number_input(
+              "Nuevo Monto Ahorrado ($)", value=ma_act, min_value=0.0
+          )
+          actualizar_meta_btn = st.form_submit_button("Guardar cambios 💾")
+
+          if actualizar_meta_btn:
+            sql(
+                "UPDATE metas SET titulo = ?, monto_objetivo = ?, monto_actual ="
+                " ? WHERE id = ? AND usuario_id = ?",
+                [
+                    nuevo_tit,
+                    float(nuevo_obj),
+                    float(nuevo_act),
+                    int(id_meta_sel),
+                    UID,
+                ],
+            )
+            st.success("¡Meta actualizada con éxito!")
+            st.rerun()
+
+        if st.button("Eliminar esta meta 🗑️", key="btn_del_meta"):
+          sql(
+              "DELETE FROM metas WHERE id = ? AND usuario_id = ?",
+              [int(id_meta_sel), UID],
+          )
+          st.success("Meta eliminada correctamente.")
           st.rerun()
       else:
         st.info(

@@ -136,7 +136,6 @@ if "usuario_id" not in st.session_state:
 # ---------- App (solo con sesión iniciada) ----------
 UID = st.session_state["usuario_id"]
 
-# Barra lateral con usuario, botón de cerrar sesión y el menú de navegación abajo
 with st.sidebar:
   st.write(f"👤 **{st.session_state['usuario']}**")
   if st.button("Cerrar sesión"):
@@ -217,15 +216,63 @@ if menu == "📉 Control de Gastos":
     st.subheader("Historial de Gastos")
     st.dataframe(df, hide_index=True, use_container_width=True)
 
-    with st.expander("Borrar un gasto"):
-      id_borrar = st.number_input("ID del gasto", min_value=1, step=1)
-      if st.button("Borrar gasto"):
-        sql(
-            "DELETE FROM gastos WHERE id = ? AND usuario_id = ?",
-            [int(id_borrar), UID],
+    # --- NUEVO: APARTADO PARA EDITAR O BORRAR GASTOS ---
+    with st.expander("✏️ Editar o 🗑️ Borrar un Gasto"):
+      id_gasto_sel = st.number_input(
+          "Ingresa el ID del gasto a modificar/borrar",
+          min_value=1,
+          step=1,
+          key="input_edit_gasto",
+      )
+
+      # Buscar si existe el gasto para ese usuario
+      gasto_encontrado = sql(
+          "SELECT fecha, categoria, descripcion, monto FROM gastos WHERE id ="
+          " ? AND usuario_id = ?",
+          [int(id_gasto_sel), UID],
+      )
+
+      if not gasto_encontrado.empty:
+        f_act = gasto_encontrado.loc[0, "fecha"]
+        c_act = gasto_encontrado.loc[0, "categoria"]
+        d_act = gasto_encontrado.loc[0, "descripcion"]
+        m_act = float(gasto_encontrado.loc[0, "monto"])
+
+        with st.form("form_editar_gasto"):
+          st.write(f"Editando el gasto con ID: **{id_gasto_sel}**")
+          nueva_cat = st.selectbox(
+              "Nueva Categoría",
+              categorias,
+              index=(
+                  categorias.index(c_act) if c_act in categorias else 0
+              ),
+          )
+          nuevo_monto = st.number_input(
+              "Nuevo Monto ($)", value=m_act, min_value=0.0
+          )
+          nueva_desc = st.text_input("Nueva Descripción", value=str(d_act))
+          actualizar_btn = st.form_submit_button("Guardar cambios 💾")
+
+          if actualizar_btn:
+            sql(
+                "UPDATE gastos SET categoria = ?, monto = ?, descripcion = ? WHERE"
+                " id = ? AND usuario_id = ?",
+                [nueva_cat, float(nuevo_monto), nueva_desc, int(id_gasto_sel), UID],
+            )
+            st.success("¡Gasto actualizado con éxito!")
+            st.rerun()
+
+        if st.button("Eliminar este gasto 🗑️", key="btn_del_gasto"):
+          sql(
+              "DELETE FROM gastos WHERE id = ? AND usuario_id = ?",
+              [int(id_gasto_sel), UID],
+          )
+          st.success("Gasto borrado correctamente.")
+          st.rerun()
+      else:
+        st.info(
+            "Ingresa un ID válido de la lista superior para editar o borrar."
         )
-        st.success("Gasto borrado correctamente.")
-        st.rerun()
   else:
     st.info("Aún no tienes gastos registrados.")
 
@@ -286,12 +333,70 @@ elif menu == "💳 Control de Deudas":
   else:
     st.dataframe(df_deudas, hide_index=True, use_container_width=True)
 
-    with st.expander("Borrar una deuda"):
-      id_deuda_borrar = st.number_input("ID de la deuda", min_value=1, step=1)
-      if st.button("Eliminar Deuda"):
-        sql(
-            "DELETE FROM deudas WHERE id = ? AND usuario_id = ?",
-            [int(id_deuda_borrar), UID],
+    # --- NUEVO: APARTADO PARA EDITAR O BORRAR DEUDAS ---
+    with st.expander("✏️ Editar o 🗑️ Borrar una Deuda"):
+      id_deuda_sel = st.number_input(
+          "Ingresa el ID de la deuda a modificar/borrar",
+          min_value=1,
+          step=1,
+          key="input_edit_deuda",
+      )
+
+      deuda_encontrada = sql(
+          "SELECT persona, tipo, monto_total, monto_pagado, estado FROM deudas"
+          " WHERE id = ? AND usuario_id = ?",
+          [int(id_deuda_sel), UID],
+      )
+
+      if not deuda_encontrada.empty:
+        p_act = deuda_encontrada.loc[0, "persona"]
+        t_act = deuda_encontrada.loc[0, "tipo"]
+        mt_act = float(deuda_encontrada.loc[0, "monto_total"])
+        mp_act = float(deuda_encontrada.loc[0, "monto_pagado"])
+        e_act = deuda_encontrada.loc[0, "estado"]
+
+        with st.form("form_editar_deuda"):
+          st.write(f"Editando la deuda con ID: **{id_deuda_sel}**")
+          nueva_persona = st.text_input(
+              "Persona o Entidad", value=str(p_act)
+          )
+          nuevo_monto_t = st.number_input(
+              "Nuevo Monto Total ($)", value=mt_act, min_value=0.0
+          )
+          nuevo_monto_p = st.number_input(
+              "Nuevo Monto Abonado ($)", value=mp_act, min_value=0.0
+          )
+          nuevo_estado = st.selectbox(
+              "Nuevo Estado",
+              ["Pendiente", "Pagado"],
+              index=0 if e_act == "Pendiente" else 1,
+          )
+          actualizar_deuda_btn = st.form_submit_button("Guardar cambios 💾")
+
+          if actualizar_deuda_btn:
+            sql(
+                "UPDATE deudas SET persona = ?, monto_total = ?, monto_pagado ="
+                " ?, estado = ? WHERE id = ? AND usuario_id = ?",
+                [
+                    nueva_persona,
+                    float(nuevo_monto_t),
+                    float(nuevo_monto_p),
+                    nuevo_estado,
+                    int(id_deuda_sel),
+                    UID,
+                ],
+            )
+            st.success("¡Deuda actualizada con éxito!")
+            st.rerun()
+
+        if st.button("Eliminar esta deuda 🗑️", key="btn_del_deuda"):
+          sql(
+              "DELETE FROM deudas WHERE id = ? AND usuario_id = ?",
+              [int(id_deuda_sel), UID],
+          )
+          st.success("Deuda eliminada correctamente.")
+          st.rerun()
+      else:
+        st.info(
+            "Ingresa un ID válido de la lista superior para editar o borrar."
         )
-        st.success("Deuda eliminada correctamente.")
-        st.rerun()

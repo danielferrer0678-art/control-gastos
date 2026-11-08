@@ -73,8 +73,6 @@ CREATE TABLE IF NOT EXISTS deudas (
     usuario_id INTEGER NOT NULL
 )
 """)
-
-# NUEVA TABLA PARA METAS DE AHORRO
 sql("""
 CREATE TABLE IF NOT EXISTS metas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -209,29 +207,53 @@ if menu == "📉 Control de Gastos":
     df["monto"] = df["monto"].astype(float)
     df["id"] = df["id"].astype(int)
     df["categoria"] = df["categoria"].str.strip().str.capitalize()
+    df["fecha"] = pd.to_datetime(df["fecha"])
 
-    st.metric("Total gastado", f"${df['monto'].sum():,.2f}")
+    # --- NUEVO: RESUMEN Y FILTRO MENSUAL ---
+    st.subheader("📅 Resumen de Gasto Mensual")
 
-    st.subheader("¿En qué se va tu dinero?")
-    resumen = (
-        df.groupby("categoria")["monto"]
-        .sum()
-        .sort_values(ascending=False)
-        .reset_index()
+    # Extraer el año y mes para el selector (Ej: "2026-11")
+    df["mes_año"] = df["fecha"].dt.to_period("M").astype(str)
+    meses_disponibles = sorted(df["mes_año"].unique(), reverse=True)
+
+    mes_seleccionado = st.selectbox(
+        "Selecciona el mes a consultar:", meses_disponibles
     )
 
-    col1, col2 = st.columns(2)
-    with col1:
-      st.bar_chart(resumen.set_index("categoria"))
-    with col2:
-      st.dataframe(
-          resumen.rename(columns={"monto": "total"}),
-          hide_index=True,
-          use_container_width=True,
+    # Filtrar el dataframe por el mes seleccionado
+    df_filtrado = df[df["mes_año"] == mes_seleccionado]
+    total_mes = df_filtrado["monto"].sum()
+
+    st.metric(f"Total gastado en {mes_seleccionado}", f"${total_mes:,.2f}")
+
+    if not df_filtrado.empty:
+      st.markdown(f"**Desglose por categoría ({mes_seleccionado}):**")
+      resumen_mes = (
+          df_filtrado.groupby("categoria")["monto"]
+          .sum()
+          .sort_values(ascending=False)
+          .reset_index()
       )
 
-    st.subheader("Historial de Gastos")
-    st.dataframe(df, hide_index=True, use_container_width=True)
+      col1, col2 = st.columns(2)
+      with col1:
+        st.bar_chart(resumen_mes.set_index("categoria"))
+      with col2:
+        st.dataframe(
+            resumen_mes.rename(columns={"monto": "total"}),
+            hide_index=True,
+            use_container_width=True,
+        )
+
+    st.subheader("Historial General de Gastos")
+    # Mostramos la fecha formateada legiblemente en la tabla
+    df_mostrar = df.copy()
+    df_mostrar["fecha"] = df_mostrar["fecha"].dt.strftime("%Y-%m-%d")
+    st.dataframe(
+        df_mostrar.drop(columns=["mes_año"]),
+        hide_index=True,
+        use_container_width=True,
+    )
 
     with st.expander("✏️ Editar o 🗑️ Borrar un Gasto"):
       id_gasto_sel = st.number_input(
@@ -413,7 +435,7 @@ elif menu == "💳 Control de Deudas":
             "Ingresa un ID válido de la lista superior para editar o borrar."
         )
 
-# ==================== APARTADO: METAS DE AHORRO (NUEVO) ====================
+# ==================== APARTADO: METAS DE AHORRO ====================
 elif menu == "🎯 Metas de Ahorro":
   st.header("🎯 Metas y Objetivos de Ahorro")
 
@@ -454,7 +476,6 @@ elif menu == "🎯 Metas de Ahorro":
       st.success("¡Meta de ahorro creada con éxito!")
       st.rerun()
 
-  # Consultar metas del usuario
   df_metas = sql(
       "SELECT id, titulo, monto_objetivo, monto_actual, fecha_limite FROM metas"
       " WHERE usuario_id = ? ORDER BY id DESC",
@@ -465,7 +486,6 @@ elif menu == "🎯 Metas de Ahorro":
   if df_metas.empty:
     st.info("Aún no tienes metas de ahorro registradas. ¡Crea una arriba!")
   else:
-    # Mostrar tarjetas con barras de progreso visuales para cada meta
     for index, row in df_metas.iterrows():
       m_id = int(row["id"])
       titulo = row["titulo"]
@@ -473,7 +493,6 @@ elif menu == "🎯 Metas de Ahorro":
       actual = float(row["monto_actual"])
       f_limite = row["fecha_limite"]
 
-      # Calcular porcentaje (máximo 1.0 para la barra de Streamlit)
       porcentaje = min(actual / objetivo, 1.0) if objetivo > 0 else 0.0
       porcentaje_txt = (actual / objetivo) * 100 if objetivo > 0 else 0.0
 

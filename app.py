@@ -60,6 +60,16 @@ CREATE TABLE IF NOT EXISTS gastos (
     monto REAL NOT NULL
 )
 """)
+sql("""
+CREATE TABLE IF NOT EXISTS ingresos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    fecha TEXT NOT NULL,
+    categoria TEXT NOT NULL,
+    descripcion TEXT,
+    monto REAL NOT NULL,
+    usuario_id INTEGER NOT NULL
+)
+""")
 try:  # agrega la columna del dueño del gasto (solo la primera vez)
     sql("ALTER TABLE gastos ADD COLUMN usuario_id INTEGER")
 except Exception:

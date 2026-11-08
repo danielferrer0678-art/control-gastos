@@ -139,6 +139,91 @@ if st.sidebar.button("Cerrar sesión"):
 
 st.title("💰 Control de gastos")
 
+
+# ---------- Apartado de ingresos ----------
+st.header("💵 Mis ingresos")
+
+categorias_ingresos = [
+    "Sueldo",
+    "Beca",
+    "Negocio",
+    "Regalo",
+    "Otros"
+]
+
+with st.form("nuevo_ingreso", clear_on_submit=True):
+    c1, c2 = st.columns(2)
+
+    categoria_ingreso = c1.selectbox(
+        "Tipo de ingreso",
+        categorias_ingresos
+    )
+
+    monto_ingreso = c2.number_input(
+        "Cantidad recibida ($)",
+        min_value=0.0,
+        step=50.0
+    )
+
+    descripcion_ingreso = st.text_input(
+        "Descripción del ingreso"
+    )
+
+    fecha_ingreso = st.date_input(
+        "Fecha del ingreso",
+        value=date.today()
+    )
+
+    guardar_ingreso = st.form_submit_button(
+        "Guardar ingreso"
+    )
+
+if guardar_ingreso:
+    if monto_ingreso <= 0:
+        st.warning("El monto debe ser mayor a cero.")
+    else:
+        sql(
+            "INSERT INTO ingresos "
+            "(fecha, categoria, descripcion, monto, usuario_id) "
+            "VALUES (?, ?, ?, ?, ?)",
+            [
+                fecha_ingreso.isoformat(),
+                categoria_ingreso,
+                descripcion_ingreso,
+                float(monto_ingreso),
+                UID
+            ]
+        )
+        st.success("¡Ingreso registrado correctamente!")
+        st.rerun()
+
+# Consultar ingresos del usuario
+df_ingresos = sql(
+    "SELECT fecha, categoria, descripcion, monto "
+    "FROM ingresos WHERE usuario_id = ? "
+    "ORDER BY fecha DESC, id DESC",
+    [UID]
+)
+
+total_ingresos = (
+    df_ingresos["monto"].astype(float).sum()
+    if not df_ingresos.empty else 0
+)
+
+st.metric("Total de ingresos", f"${total_ingresos:,.2f}")
+
+st.subheader("Historial de ingresos")
+
+if df_ingresos.empty:
+    st.info("Todavía no tienes ingresos registrados.")
+else:
+    st.dataframe(
+        df_ingresos,
+        hide_index=True,
+        use_container_width=True
+    )
+
+
 st.subheader("Registrar un gasto")
 categorias = ["Comida", "Transporte", "Entretenimiento", "Ropa",
               "Salud", "Servicios", "Escuela", "Otros"]

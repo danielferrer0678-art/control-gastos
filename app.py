@@ -180,4 +180,4 @@ with st.expander("Borrar un gasto"):
     id_borrar = st.number_input("ID del gasto", min_value=1, step=1)
     if st.button("Borrar"):
         sql("DELETE FROM gastos WHERE id = ? AND usuario_id = ?", [int(id_borrar), UID])
-        st.success("Gasto borrado. Recarga la página para ver el cambio.")
+        st.success("Gasto borrado. Recarga la página para ver el cam

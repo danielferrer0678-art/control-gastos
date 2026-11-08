@@ -7,7 +7,68 @@ import requests
 import streamlit as st
 
 st.set_page_config(
-    page_title="Control de gastos y deudas", page_icon="💰", layout="wide"
+    page_title="Control de Gastos y Deudas", page_icon="💰", layout="wide"
+)
+
+# ---------- ESTILOS CSS (TEMA VIOLETA, AZUL Y NEGRO) ----------
+st.markdown(
+    """
+    <style>
+    /* Fondo principal y tipografía general */
+    .stApp {
+        background-color: #0b0914; /* Negro con un tinte sutil violeta oscuro */
+        color: #e2e8f0;
+    }
+    
+    /* Ocultar elementos predeterminados */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+
+    /* Barra lateral (Sidebar) con estilo violeta/azul oscuro */
+    [data-testid="stSidebar"] {
+        background-color: #120e26;
+        border-right: 1px solid #2b1f50;
+    }
+
+    /* Tarjetas de métricas y contenedores personalizados */
+    div.stMetric {
+        background: linear-gradient(135deg, #17112e 0%, #1e153b 100%);
+        padding: 18px;
+        border-radius: 14px;
+        border: 1px solid #4c2885; /* Borde violeta elegante */
+        box-shadow: 0 4px 15px rgba(109, 40, 217, 0.15);
+    }
+    
+    div.stMetric label {
+        color: #a78bfa !important; /* Títulos de métricas en violeta claro */
+    }
+
+    /* Botones principales personalizados (Degradado Violeta a Azul) */
+    .stButton>button {
+        background: linear-gradient(135deg, #7c3aed 100%, #2563eb 0%);
+        color: white;
+        border-radius: 8px;
+        border: none;
+        padding: 0.5rem 1.2rem;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        background: linear-gradient(135deg, #6d28d9 100%, #1d4ed8 0%);
+        border: none;
+        color: white;
+        box-shadow: 0 6px 16px rgba(124, 58, 237, 0.5);
+    }
+
+    /* Estilos para pestañas (Tabs) o formularios */
+    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+        color: #a78bfa !important;
+        border-bottom-color: #7c3aed !important;
+    }
+    </style>
+""",
+    unsafe_allow_html=True,
 )
 
 URL = st.secrets["TURSO_URL"].replace("libsql://", "https://")
@@ -85,8 +146,6 @@ CREATE TABLE IF NOT EXISTS metas (
     usuario_id INTEGER NOT NULL
 )
 """)
-
-# NUEVA TABLA PARA PRESUPUESTO MENSUAL
 sql("""
 CREATE TABLE IF NOT EXISTS presupuestos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,7 +172,11 @@ def verificar(clave, guardada):
 
 # ---------- Login / Registro ----------
 if "usuario_id" not in st.session_state:
-  st.title("💰 Control de Gastos y Deudas")
+  st.markdown(
+      "<h1 style='text-align: center; color: #a78bfa;'>💰 Control de Gastos y"
+      " Deudas</h1>",
+      unsafe_allow_html=True,
+  )
   tab_in, tab_reg = st.tabs(["Iniciar sesión", "Crear cuenta"])
 
   with tab_in:
@@ -160,7 +223,10 @@ if "usuario_id" not in st.session_state:
 UID = st.session_state["usuario_id"]
 
 with st.sidebar:
-  st.write(f"👤 **{st.session_state['usuario']}**")
+  st.markdown(
+      f"<h3 style='color: #c4b5fd;'>👤 {st.session_state['usuario']}</h3>",
+      unsafe_allow_html=True,
+  )
   if st.button("Cerrar sesión"):
     st.session_state.clear()
     st.rerun()
@@ -576,12 +642,11 @@ elif menu == "🎯 Metas de Ahorro":
             "Ingresa un ID válido de la lista superior para editar o borrar."
         )
 
-# ==================== APARTADO: PRESUPUESTO MENSUAL (NUEVO) ====================
+# ==================== APARTADO: PRESUPUESTO MENSUAL ====================
 elif menu == "📊 Presupuesto Mensual":
   st.header("📊 Presupuesto Mensual")
   st.write("Planifica tus gastos y controla tu presupuesto por mes.")
 
-  # Obtener gastos para calcular los meses disponibles
   df_g = sql(
       "SELECT fecha, categoria, monto FROM gastos WHERE usuario_id = ?", [UID]
   )
@@ -602,7 +667,6 @@ elif menu == "📊 Presupuesto Mensual":
           "Selecciona el mes a presupuestar:", meses_disp, key="mes_presupuesto"
       )
 
-    # Buscar si ya existe un presupuesto guardado para este mes
     p_actual_db = sql(
         "SELECT monto_limite FROM presupuestos WHERE mes_año = ? AND usuario_id"
         " = ?",
@@ -625,7 +689,6 @@ elif menu == "📊 Presupuesto Mensual":
         guardar_presup = st.form_submit_button("💾 Guardar / Actualizar Límite")
 
       if guardar_presup:
-        # Upsert en SQLite/Turso
         sql(
             "INSERT INTO presupuestos (mes_año, monto_limite, usuario_id) "
             "VALUES (?, ?, ?) "
@@ -635,7 +698,6 @@ elif menu == "📊 Presupuesto Mensual":
         st.success(f"¡Presupuesto para {mes_p} actualizado a ${nuevo_limite:,.2f}!")
         st.rerun()
 
-    # Cálculos del mes seleccionado
     df_mes_g = df_g[df_g["mes_año"] == mes_p]
     gastado_mes = df_mes_g["monto"].sum()
     restante_mes = nuevo_limite - gastado_mes
@@ -648,7 +710,6 @@ elif menu == "📊 Presupuesto Mensual":
 
     st.markdown("---")
 
-    # Tarjetas superiores métricas estilo Dashboard
     m1, m2, m3 = st.columns(3)
     with m1:
       st.metric(

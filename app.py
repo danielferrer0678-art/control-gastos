@@ -6,7 +6,9 @@ import pandas as pd
 import requests
 import streamlit as st
 
-st.set_page_config(page_title="Control de gastos y deudas", page_icon="💰")
+st.set_page_config(
+    page_title="Control de gastos y deudas", page_icon="💰", layout="wide"
+)
 
 URL = st.secrets["TURSO_URL"].replace("libsql://", "https://")
 TOKEN = st.secrets["TURSO_TOKEN"]
@@ -81,6 +83,17 @@ CREATE TABLE IF NOT EXISTS metas (
     monto_actual REAL NOT NULL,
     fecha_limite TEXT NOT NULL,
     usuario_id INTEGER NOT NULL
+)
+""")
+
+# NUEVA TABLA PARA PRESUPUESTO MENSUAL
+sql("""
+CREATE TABLE IF NOT EXISTS presupuestos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mes_año TEXT NOT NULL,
+    monto_limite REAL NOT NULL,
+    usuario_id INTEGER NOT NULL,
+    UNIQUE(mes_año, usuario_id)
 )
 """)
 
@@ -160,6 +173,7 @@ with st.sidebar:
           "📉 Control de Gastos",
           "💳 Control de Deudas",
           "🎯 Metas de Ahorro",
+          "📊 Presupuesto Mensual",
       ],
   )
 
@@ -209,10 +223,7 @@ if menu == "📉 Control de Gastos":
     df["categoria"] = df["categoria"].str.strip().str.capitalize()
     df["fecha"] = pd.to_datetime(df["fecha"])
 
-    # --- NUEVO: RESUMEN Y FILTRO MENSUAL ---
     st.subheader("📅 Resumen de Gasto Mensual")
-
-    # Extraer el año y mes para el selector (Ej: "2026-11")
     df["mes_año"] = df["fecha"].dt.to_period("M").astype(str)
     meses_disponibles = sorted(df["mes_año"].unique(), reverse=True)
 
@@ -220,7 +231,6 @@ if menu == "📉 Control de Gastos":
         "Selecciona el mes a consultar:", meses_disponibles
     )
 
-    # Filtrar el dataframe por el mes seleccionado
     df_filtrado = df[df["mes_año"] == mes_seleccionado]
     total_mes = df_filtrado["monto"].sum()
 
@@ -245,8 +255,7 @@ if menu == "📉 Control de Gastos":
             use_container_width=True,
         )
 
-    st.subheader("Historial General de Gastos")
-    # Mostramos la fecha formateada legiblemente en la tabla
+    st.subheader("Historial de Gastos")
     df_mostrar = df.copy()
     df_mostrar["fecha"] = df_mostrar["fecha"].dt.strftime("%Y-%m-%d")
     st.dataframe(
@@ -566,3 +575,114 @@ elif menu == "🎯 Metas de Ahorro":
         st.info(
             "Ingresa un ID válido de la lista superior para editar o borrar."
         )
+
+# ==================== APARTADO: PRESUPUESTO MENSUAL (NUEVO) ====================
+elif menu == "📊 Presupuesto Mensual":
+  st.header("📊 Presupuesto Mensual")
+  st.write("Planifica tus gastos y controla tu presupuesto por mes.")
+
+  # Obtener gastos para calcular los meses disponibles
+  df_g = sql(
+      "SELECT fecha, categoria, monto FROM gastos WHERE usuario_id = ?", [UID]
+  )
+
+  if df_g.empty:
+    st.info(
+        "Aún no tienes gastos registrados. Registra algunos gastos primero para"
+        " ver tu presupuesto."
+    )
+  else:
+    df_g["fecha"] = pd.to_datetime(df_g["fecha"])
+    df_g["mes_año"] = df_g["fecha"].dt.to_period("M").astype(str)
+    meses_disp = sorted(df_g["mes_año"].unique(), reverse=True)
+
+    c_sel1, c_sel2 = st.columns([2, 2])
+    with c_sel1:
+      mes_p = st.selectbox(
+          "Selecciona el mes a presupuestar:", meses_disp, key="mes_presupuesto"
+      )
+
+    # Buscar si ya existe un presupuesto guardado para este mes
+    p_actual_db = sql(
+        "SELECT monto_limite FROM presupuestos WHERE mes_año = ? AND usuario_id"
+        " = ?",
+        [mes_p, UID],
+    )
+    presupuesto_guardado = (
+        float(p_actual_db.loc[0, "monto_limite"])
+        if not p_actual_db.empty
+        else 10000.0
+    )
+
+    with c_sel2:
+      with st.form("form_editar_presupuesto"):
+        nuevo_limite = st.number_input(
+            "Presupuesto Total ($)",
+            value=presupuesto_guardado,
+            min_value=0.0,
+            step=100.0,
+        )
+        guardar_presup = st.form_submit_button("💾 Guardar / Actualizar Límite")
+
+      if guardar_presup:
+        # Upsert en SQLite/Turso
+        sql(
+            "INSERT INTO presupuestos (mes_año, monto_limite, usuario_id) "
+            "VALUES (?, ?, ?) "
+            "ON CONFLICT(mes_año, usuario_id) DO UPDATE SET monto_limite = ?",
+            [mes_p, float(nuevo_limite), UID, float(nuevo_limite)],
+        )
+        st.success(f"¡Presupuesto para {mes_p} actualizado a ${nuevo_limite:,.2f}!")
+        st.rerun()
+
+    # Cálculos del mes seleccionado
+    df_mes_g = df_g[df_g["mes_año"] == mes_p]
+    gastado_mes = df_mes_g["monto"].sum()
+    restante_mes = nuevo_limite - gastado_mes
+    porcentaje_gastado = (
+        min((gastado_mes / nuevo_limite), 1.0) if nuevo_limite > 0 else 0.0
+    )
+    porcentaje_txt = (
+        (gastado_mes / nuevo_limite) * 100 if nuevo_limite > 0 else 0.0
+    )
+
+    st.markdown("---")
+
+    # Tarjetas superiores métricas estilo Dashboard
+    m1, m2, m3 = st.columns(3)
+    with m1:
+      st.metric(
+          label="💰 Presupuesto Total", value=f"${nuevo_limite:,.2f}"
+      )
+    with m2:
+      st.metric(
+          label="📉 Gastado",
+          value=f"${gastado_mes:,.2f}",
+          delta=f"{porcentaje_txt:.1f}% del total",
+          delta_color="inverse",
+      )
+    with m3:
+      st.metric(label="✨ Restante", value=f"${restante_mes:,.2f}")
+
+    st.progress(
+        porcentaje_gastado,
+        text=f"Progreso del gasto mensual: {porcentaje_txt:.1f}% utilizado",
+    )
+
+    st.markdown("---")
+    st.subheader("📋 Desglose por Categorías")
+
+    if not df_mes_g.empty:
+      cat_resumen = (
+          df_mes_g.groupby("categoria")["monto"]
+          .sum()
+          .reset_index()
+          .rename(columns={"monto": "Gasto"})
+      )
+      cat_resumen["Porcentaje"] = (
+          (cat_resumen["Gasto"] / gastado_mes * 100).round(1).astype(str) + "%"
+      )
+
+      st.dataframe(cat_resumen, hide_index=True, use_container_width=True)
+    else:
+      st.info(f"No hay gastos registrados en el mes de {mes_p}.")

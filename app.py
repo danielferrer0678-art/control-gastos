@@ -137,9 +137,6 @@ if st.sidebar.button("Cerrar sesión"):
     st.session_state.clear()
     st.rerun()
 
-st.title("💰 Control de gastos")
-
-
 # ---------- Apartado de ingresos ----------
 st.header("💵 Mis ingresos")
 

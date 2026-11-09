@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import os
 import pandas as pd
+import plotly.express as px
 import requests
 import streamlit as st
 
@@ -35,18 +36,18 @@ st.markdown(
         background: linear-gradient(135deg, #1b123b 0%, #110c24 100%);
         padding: 18px;
         border-radius: 14px;
-        border: 1px solid #f59e0b; /* Borde dorado elegante */
+        border: 1px solid #f59e0b;
         box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
     }
     
     div.stMetric label {
-        color: #fbbf24 !important; /* Títulos de métricas en dorado claro */
+        color: #fbbf24 !important;
     }
 
     /* Contenedores de formularios con borde dorado */
     [data-testid="stForm"] {
         background-color: #140d2b !important;
-        border: 2px solid #d97706 !important; /* Dorado fuerte */
+        border: 2px solid #d97706 !important;
         border-radius: 16px;
         padding: 22px;
         box-shadow: 0 8px 20px rgba(217, 119, 6, 0.2);
@@ -338,7 +339,22 @@ if menu == "📉 Control de Gastos":
 
       col1, col2 = st.columns(2)
       with col1:
-        st.bar_chart(resumen_mes.set_index("categoria"))
+        # GRÁFICA AVANZADA DE DONA CON PLOTLY
+        fig = px.pie(
+            resumen_mes,
+            names="categoria",
+            values="monto",
+            hole=0.4,
+            color_discrete_sequence=px.colors.sequential.Purp,
+        )
+        fig.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font_color="#f1f5f9",
+            margin=dict(t=10, b=10, l=10, r=10),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
       with col2:
         st.dataframe(
             resumen_mes.rename(columns={"monto": "total"}),
@@ -769,6 +785,25 @@ elif menu == "📊 Presupuesto Mensual":
           (cat_resumen["Gasto"] / gastado_mes * 100).round(1).astype(str) + "%"
       )
 
-      st.dataframe(cat_resumen, hide_index=True, use_container_width=True)
+      col_g1, col_g2 = st.columns(2)
+      with col_g1:
+        # Gráfica de dona de categorías para el presupuesto
+        fig_presup = px.pie(
+            cat_resumen,
+            names="categoria",
+            values="Gasto",
+            hole=0.5,
+            color_discrete_sequence=px.colors.sequential.Sunsetdark,
+        )
+        fig_presup.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font_color="#f1f5f9",
+            margin=dict(t=10, b=10, l=10, r=10),
+        )
+        st.plotly_chart(fig_presup, use_container_width=True)
+
+      with col_g2:
+        st.dataframe(cat_resumen, hide_index=True, use_container_width=True)
     else:
       st.info(f"No hay gastos registrados en el mes de {mes_p}.")

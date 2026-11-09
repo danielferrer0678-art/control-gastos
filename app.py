@@ -196,6 +196,19 @@ def verificar(clave, guardada):
   return hmac.compare_digest(h.hex(), h_hex)
 
 
+# ---------- Mapeo de Colores para Gráficas ----------
+colores_categorias = {
+    "Comida": "#d97706",  # Dorado
+    "Transporte": "#8b5cf6",  # Violeta claro
+    "Entretenimiento": "#3b82f6",  # Azul
+    "Ropa": "#ec4899",  # Rosa/Magenta
+    "Salud": "#10b981",  # Verde
+    "Servicios": "#f59e0b",  # Ámbar
+    "Escuela": "#6366f1",  # Índigo
+    "Otros": "#64748b",  # Gris pizarra
+}
+
+
 # ---------- Login / Registro ----------
 if "usuario_id" not in st.session_state:
   st.markdown(
@@ -339,13 +352,14 @@ if menu == "📉 Control de Gastos":
 
       col1, col2 = st.columns(2)
       with col1:
-        # GRÁFICA AVANZADA DE DONA CON PLOTLY
+        # Gráfica de dona avanzada con colores personalizados por categoría
         fig = px.pie(
             resumen_mes,
             names="categoria",
             values="monto",
             hole=0.4,
-            color_discrete_sequence=px.colors.sequential.Purp,
+            color="categoria",
+            color_discrete_map=colores_categorias,
         )
         fig.update_layout(
             paper_bgcolor="rgba(0,0,0,0)",
@@ -787,13 +801,14 @@ elif menu == "📊 Presupuesto Mensual":
 
       col_g1, col_g2 = st.columns(2)
       with col_g1:
-        # Gráfica de dona de categorías para el presupuesto
+        # Gráfica de dona de categorías con colores personalizados fijos
         fig_presup = px.pie(
             cat_resumen,
             names="categoria",
             values="Gasto",
             hole=0.5,
-            color_discrete_sequence=px.colors.sequential.Sunsetdark,
+            color="categoria",
+            color_discrete_map=colores_categorias,
         )
         fig_presup.update_layout(
             paper_bgcolor="rgba(0,0,0,0)",

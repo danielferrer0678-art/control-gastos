@@ -11,27 +11,22 @@ st.set_page_config(
     page_title="Control de Gastos y Deudas", page_icon="💰", layout="wide"
 )
 
-# ---------- ESTILOS CSS (TEMA VIOLETA, DORADO Y NEGRO + TABLAS MEJORADAS) ----------
+# ---------- ESTILOS CSS GENERALES ----------
 st.markdown(
     """
     <style>
-    /* Fondo principal de toda la aplicación (Negro profundo) */
     .stApp {
         background-color: #07050d;
         color: #f1f5f9;
     }
-    
-    /* Ocultar elementos predeterminados */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 
-    /* Barra lateral (Sidebar) */
     [data-testid="stSidebar"] {
         background-color: #110c24;
         border-right: 1px solid #3b2375;
     }
 
-    /* Tarjetas de métricas con acentos dorados */
     div.stMetric {
         background: linear-gradient(135deg, #1b123b 0%, #110c24 100%);
         padding: 18px;
@@ -44,7 +39,6 @@ st.markdown(
         color: #fbbf24 !important;
     }
 
-    /* Contenedores de formularios con borde dorado */
     [data-testid="stForm"] {
         background-color: #140d2b !important;
         border: 2px solid #d97706 !important;
@@ -53,7 +47,6 @@ st.markdown(
         box-shadow: 0 8px 20px rgba(217, 119, 6, 0.2);
     }
 
-    /* Cajas de texto, fechas y desplegables */
     .stTextInput input, .stSelectbox select, .stDateInput input, .stNumberInput input {
         background-color: #1f1442 !important;
         color: #ffffff !important;
@@ -61,7 +54,6 @@ st.markdown(
         border-radius: 8px !important;
     }
 
-    /* Cajas de avisos o alertas informativas */
     .stAlert {
         background-color: #160f2e !important;
         color: #fde68a !important;
@@ -69,7 +61,6 @@ st.markdown(
         border-radius: 10px;
     }
 
-    /* Botones principales (Degradado vibrante Violeta a Dorado) */
     .stButton>button {
         background: linear-gradient(135deg, #7c3aed 0%, #d97706 100%);
         color: white;
@@ -87,19 +78,38 @@ st.markdown(
         box-shadow: 0 6px 18px rgba(217, 119, 6, 0.6);
     }
 
-    /* Estilos avanzados para las Tablas (DataFrames) */
-    [data-testid="stDataFrame"] {
-        border: 2px solid #d97706 !important;
-        border-radius: 14px;
-        background-color: #110c24 !important;
-        padding: 8px;
-        box-shadow: 0 6px 20px rgba(217, 119, 6, 0.15);
-    }
-
-    /* Estilos para pestañas */
     .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
         color: #fbbf24 !important;
         border-bottom-color: #f59e0b !important;
+    }
+
+    /* ESTILO PROFESIONAL PARA TABLAS HTML PERSONALIZADAS */
+    .tabla-financiera {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #110c24;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid #d97706;
+        box-shadow: 0 6px 20px rgba(217, 119, 6, 0.2);
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    .tabla-financiera th {
+        background-color: #1b123b;
+        color: #fbbf24;
+        text-align: left;
+        padding: 12px 16px;
+        font-weight: 600;
+        border-bottom: 2px solid #d97706;
+    }
+    .tabla-financiera td {
+        padding: 10px 16px;
+        color: #f1f5f9;
+        border-bottom: 1px solid #2d1b54;
+    }
+    .tabla-financiera tr:hover {
+        background-color: #1f1442;
     }
     </style>
 """,
@@ -139,6 +149,12 @@ def sql(query, args=None):
   cols = [c["name"] for c in result["cols"]]
   rows = [[c.get("value") for c in row] for row in result["rows"]]
   return pd.DataFrame(rows, columns=cols)
+
+
+# ---------- Función para renderizar tablas con diseño pro ----------
+def mostrar_tabla_pro(df):
+  html_table = df.to_html(classes="tabla-financiera", index=False, escape=False)
+  st.markdown(html_table, unsafe_allow_html=True)
 
 
 # ---------- Tablas ----------
@@ -207,14 +223,14 @@ def verificar(clave, guardada):
 
 # ---------- Mapeo de Colores para Gráficas ----------
 colores_categorias = {
-    "Comida": "#d97706",  # Dorado
-    "Transporte": "#8b5cf6",  # Violeta claro
-    "Entretenimiento": "#3b82f6",  # Azul
-    "Ropa": "#ec4899",  # Rosa/Magenta
-    "Salud": "#10b981",  # Verde
-    "Servicios": "#f59e0b",  # Ámbar
-    "Escuela": "#6366f1",  # Índigo
-    "Otros": "#64748b",  # Gris pizarra
+    "Comida": "#d97706",
+    "Transporte": "#8b5cf6",
+    "Entretenimiento": "#3b82f6",
+    "Ropa": "#ec4899",
+    "Salud": "#10b981",
+    "Servicios": "#f59e0b",
+    "Escuela": "#6366f1",
+    "Otros": "#64748b",
 }
 
 
@@ -378,20 +394,17 @@ if menu == "📉 Control de Gastos":
         st.plotly_chart(fig, use_container_width=True)
 
       with col2:
-        st.dataframe(
-            resumen_mes.rename(columns={"monto": "total"}),
-            hide_index=True,
-            use_container_width=True,
+        df_resumen_mostrar = resumen_mes.rename(columns={"monto": "total"})
+        df_resumen_mostrar["total"] = df_resumen_mostrar["total"].apply(
+            lambda x: f"${x:,.2f}"
         )
+        mostrar_tabla_pro(df_resumen_mostrar)
 
     st.subheader("Historial de Gastos")
     df_mostrar = df.copy()
     df_mostrar["fecha"] = df_mostrar["fecha"].dt.strftime("%Y-%m-%d")
-    st.dataframe(
-        df_mostrar.drop(columns=["mes_año"]),
-        hide_index=True,
-        use_container_width=True,
-    )
+    df_mostrar["monto"] = df_mostrar["monto"].apply(lambda x: f"${x:,.2f}")
+    mostrar_tabla_pro(df_mostrar.drop(columns=["mes_año"]))
 
     with st.expander("✏️ Editar o 🗑️ Borrar un Gasto"):
       id_gasto_sel = st.number_input(
@@ -505,7 +518,14 @@ elif menu == "💳 Control de Deudas":
   if df_deudas.empty:
     st.info("No tienes deudas o préstamos registrados.")
   else:
-    st.dataframe(df_deudas, hide_index=True, use_container_width=True)
+    df_deudas_mostrar = df_deudas.copy()
+    df_deudas_mostrar["monto_total"] = df_deudas_mostrar["monto_total"].apply(
+        lambda x: f"${float(x):,.2f}"
+    )
+    df_deudas_mostrar["monto_pagado"] = df_deudas_mostrar["monto_pagado"].apply(
+        lambda x: f"${float(x):,.2f}"
+    )
+    mostrar_tabla_pro(df_deudas_mostrar)
 
     with st.expander("✏️ Editar o 🗑️ Borrar una Deuda"):
       id_deuda_sel = st.number_input(
@@ -646,7 +666,14 @@ elif menu == "🎯 Metas de Ahorro":
       st.markdown("---")
 
     st.subheader("Historial y Gestión de Metas")
-    st.dataframe(df_metas, hide_index=True, use_container_width=True)
+    df_metas_mostrar = df_metas.copy()
+    df_metas_mostrar["monto_objetivo"] = df_metas_mostrar["monto_objetivo"].apply(
+        lambda x: f"${float(x):,.2f}"
+    )
+    df_metas_mostrar["monto_actual"] = df_metas_mostrar["monto_actual"].apply(
+        lambda x: f"${float(x):,.2f}"
+    )
+    mostrar_tabla_pro(df_metas_mostrar)
 
     with st.expander("✏️ Editar o 🗑️ Borrar una Meta"):
       id_meta_sel = st.number_input(
@@ -826,6 +853,10 @@ elif menu == "📊 Presupuesto Mensual":
         st.plotly_chart(fig_presup, use_container_width=True)
 
       with col_g2:
-        st.dataframe(cat_resumen, hide_index=True, use_container_width=True)
+        cat_resumen_mostrar = cat_resumen.copy()
+        cat_resumen_mostrar["Gasto"] = cat_resumen_mostrar["Gasto"].apply(
+            lambda x: f"${x:,.2f}"
+        )
+        mostrar_tabla_pro(cat_resumen_mostrar)
     else:
       st.info(f"No hay gastos registrados en el mes de {mes_p}.")

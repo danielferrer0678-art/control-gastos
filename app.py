@@ -10,11 +10,11 @@ st.set_page_config(
     page_title="Control de Gastos y Deudas", page_icon="💰", layout="wide"
 )
 
-# ---------- ESTILOS CSS (TEMA VIOLETA, AZUL Y NEGRO) ----------
+# ---------- ESTILOS CSS (TEMA VIOLETA, DORADO Y NEGRO) ----------
 st.markdown(
     """
     <style>
-    /* Fondo principal de toda la aplicación */
+    /* Fondo principal de toda la aplicación (Negro profundo) */
     .stApp {
         background-color: #07050d;
         color: #f1f5f9;
@@ -30,66 +30,66 @@ st.markdown(
         border-right: 1px solid #3b2375;
     }
 
-    /* Tarjetas de métricas */
+    /* Tarjetas de métricas con acentos dorados */
     div.stMetric {
         background: linear-gradient(135deg, #1b123b 0%, #110c24 100%);
         padding: 18px;
         border-radius: 14px;
-        border: 1px solid #7c3aed;
-        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
+        border: 1px solid #f59e0b; /* Borde dorado elegante */
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
     }
     
     div.stMetric label {
-        color: #c4b5fd !important;
+        color: #fbbf24 !important; /* Títulos de métricas en dorado claro */
     }
 
-    /* Contenedores de formularios con fondo violeta oscuro */
+    /* Contenedores de formularios con borde dorado */
     [data-testid="stForm"] {
         background-color: #140d2b !important;
-        border: 2px solid #6d28d9 !important;
+        border: 2px solid #d97706 !important; /* Dorado fuerte */
         border-radius: 16px;
         padding: 22px;
-        box-shadow: 0 8px 20px rgba(109, 40, 217, 0.25);
+        box-shadow: 0 8px 20px rgba(217, 119, 6, 0.2);
     }
 
     /* Cajas de texto, fechas y desplegables */
     .stTextInput input, .stSelectbox select, .stDateInput input, .stNumberInput input {
         background-color: #1f1442 !important;
         color: #ffffff !important;
-        border: 1px solid #8b5cf6 !important;
+        border: 1px solid #f59e0b !important;
         border-radius: 8px !important;
     }
 
     /* Cajas de avisos o alertas informativas */
     .stAlert {
         background-color: #160f2e !important;
-        color: #ddd6fe !important;
-        border: 1px solid #7c3aed !important;
+        color: #fde68a !important;
+        border: 1px solid #d97706 !important;
         border-radius: 10px;
     }
 
-    /* Botones principales (Degradado vibrante Violeta a Azul) */
+    /* Botones principales (Degradado vibrante Violeta a Dorado) */
     .stButton>button {
-        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+        background: linear-gradient(135deg, #7c3aed 0%, #d97706 100%);
         color: white;
         border-radius: 8px;
         border: none;
         padding: 0.6rem 1.3rem;
         font-weight: 600;
-        box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4);
         transition: all 0.3s ease;
     }
     .stButton>button:hover {
-        background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
+        background: linear-gradient(135deg, #6d28d9 0%, #b45309 100%);
         border: none;
         color: white;
-        box-shadow: 0 6px 18px rgba(139, 92, 246, 0.6);
+        box-shadow: 0 6px 18px rgba(217, 119, 6, 0.6);
     }
 
     /* Estilos para pestañas */
     .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        color: #c4b5fd !important;
-        border-bottom-color: #8b5cf6 !important;
+        color: #fbbf24 !important;
+        border-bottom-color: #f59e0b !important;
     }
     </style>
 """,
@@ -198,7 +198,7 @@ def verificar(clave, guardada):
 # ---------- Login / Registro ----------
 if "usuario_id" not in st.session_state:
   st.markdown(
-      "<h1 style='text-align: center; color: #a78bfa;'>💰 Control de Gastos y"
+      "<h1 style='text-align: center; color: #fbbf24;'>💰 Control de Gastos y"
       " Deudas</h1>",
       unsafe_allow_html=True,
   )
@@ -249,7 +249,7 @@ UID = st.session_state["usuario_id"]
 
 with st.sidebar:
   st.markdown(
-      f"<h3 style='color: #c4b5fd;'>👤 {st.session_state['usuario']}</h3>",
+      f"<h3 style='color: #fbbf24;'>👤 {st.session_state['usuario']}</h3>",
       unsafe_allow_html=True,
   )
   if st.button("Cerrar sesión"):

@@ -14,57 +14,82 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* Fondo principal y tipografía general */
+    /* Fondo principal de toda la aplicación */
     .stApp {
-        background-color: #0b0914; /* Negro con un tinte sutil violeta oscuro */
-        color: #e2e8f0;
+        background-color: #07050d;
+        color: #f1f5f9;
     }
     
     /* Ocultar elementos predeterminados */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 
-    /* Barra lateral (Sidebar) con estilo violeta/azul oscuro */
+    /* Barra lateral (Sidebar) */
     [data-testid="stSidebar"] {
-        background-color: #120e26;
-        border-right: 1px solid #2b1f50;
+        background-color: #110c24;
+        border-right: 1px solid #3b2375;
     }
 
-    /* Tarjetas de métricas y contenedores personalizados */
+    /* Tarjetas de métricas */
     div.stMetric {
-        background: linear-gradient(135deg, #17112e 0%, #1e153b 100%);
+        background: linear-gradient(135deg, #1b123b 0%, #110c24 100%);
         padding: 18px;
         border-radius: 14px;
-        border: 1px solid #4c2885; /* Borde violeta elegante */
-        box-shadow: 0 4px 15px rgba(109, 40, 217, 0.15);
+        border: 1px solid #7c3aed;
+        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
     }
     
     div.stMetric label {
-        color: #a78bfa !important; /* Títulos de métricas en violeta claro */
+        color: #c4b5fd !important;
     }
 
-    /* Botones principales personalizados (Degradado Violeta a Azul) */
+    /* Contenedores de formularios con fondo violeta oscuro */
+    [data-testid="stForm"] {
+        background-color: #140d2b !important;
+        border: 2px solid #6d28d9 !important;
+        border-radius: 16px;
+        padding: 22px;
+        box-shadow: 0 8px 20px rgba(109, 40, 217, 0.25);
+    }
+
+    /* Cajas de texto, fechas y desplegables */
+    .stTextInput input, .stSelectbox select, .stDateInput input, .stNumberInput input {
+        background-color: #1f1442 !important;
+        color: #ffffff !important;
+        border: 1px solid #8b5cf6 !important;
+        border-radius: 8px !important;
+    }
+
+    /* Cajas de avisos o alertas informativas */
+    .stAlert {
+        background-color: #160f2e !important;
+        color: #ddd6fe !important;
+        border: 1px solid #7c3aed !important;
+        border-radius: 10px;
+    }
+
+    /* Botones principales (Degradado vibrante Violeta a Azul) */
     .stButton>button {
-        background: linear-gradient(135deg, #7c3aed 100%, #2563eb 0%);
+        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
         color: white;
         border-radius: 8px;
         border: none;
-        padding: 0.5rem 1.2rem;
+        padding: 0.6rem 1.3rem;
         font-weight: 600;
-        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
         transition: all 0.3s ease;
     }
     .stButton>button:hover {
-        background: linear-gradient(135deg, #6d28d9 100%, #1d4ed8 0%);
+        background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
         border: none;
         color: white;
-        box-shadow: 0 6px 16px rgba(124, 58, 237, 0.5);
+        box-shadow: 0 6px 18px rgba(139, 92, 246, 0.6);
     }
 
-    /* Estilos para pestañas (Tabs) o formularios */
+    /* Estilos para pestañas */
     .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        color: #a78bfa !important;
-        border-bottom-color: #7c3aed !important;
+        color: #c4b5fd !important;
+        border-bottom-color: #8b5cf6 !important;
     }
     </style>
 """,

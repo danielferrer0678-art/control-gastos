@@ -11,7 +11,7 @@ st.set_page_config(
     page_title="Control de Gastos y Deudas", page_icon="💰", layout="wide"
 )
 
-# ---------- ESTILOS CSS (TEMA VIOLETA, DORADO Y NEGRO) ----------
+# ---------- ESTILOS CSS (TEMA VIOLETA, DORADO Y NEGRO + TABLAS MEJORADAS) ----------
 st.markdown(
     """
     <style>
@@ -85,6 +85,15 @@ st.markdown(
         border: none;
         color: white;
         box-shadow: 0 6px 18px rgba(217, 119, 6, 0.6);
+    }
+
+    /* Estilos avanzados para las Tablas (DataFrames) */
+    [data-testid="stDataFrame"] {
+        border: 2px solid #d97706 !important;
+        border-radius: 14px;
+        background-color: #110c24 !important;
+        padding: 8px;
+        box-shadow: 0 6px 20px rgba(217, 119, 6, 0.15);
     }
 
     /* Estilos para pestañas */
@@ -352,7 +361,6 @@ if menu == "📉 Control de Gastos":
 
       col1, col2 = st.columns(2)
       with col1:
-        # Gráfica de dona avanzada con colores personalizados por categoría
         fig = px.pie(
             resumen_mes,
             names="categoria",
@@ -801,7 +809,6 @@ elif menu == "📊 Presupuesto Mensual":
 
       col_g1, col_g2 = st.columns(2)
       with col_g1:
-        # Gráfica de dona de categorías con colores personalizados fijos
         fig_presup = px.pie(
             cat_resumen,
             names="categoria",

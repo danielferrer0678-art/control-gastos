@@ -300,157 +300,17 @@ with st.sidebar:
   menu = st.radio(
       "Selecciona un apartado:",
       [
-          "📊 Resumen General",
           "📉 Control de Gastos",
           "💳 Control de Deudas",
           "🎯 Metas de Ahorro",
           "📊 Presupuesto Mensual",
+          "📊 Resumen General",
       ],
   )
 
-# ==================== APARTADO: RESUMEN GENERAL ====================
-if menu == "📊 Resumen General":
-  st.header("📊 Resumen General de tus Finanzas")
-  st.write(
-      "Aquí tienes una vista rápida y ordenada de todo tu panorama financiero"
-      " actual."
-  )
-
-  # Cargar datos generales del usuario
-  df_g_gen = sql(
-      "SELECT fecha, categoria, monto FROM gastos WHERE usuario_id = ?", [UID]
-  )
-  df_d_gen = sql(
-      "SELECT tipo, monto_total, monto_pagado, estado FROM deudas WHERE"
-      " usuario_id = ?",
-      [UID],
-  )
-  df_m_gen = sql(
-      "SELECT monto_objetivo, monto_actual FROM metas WHERE usuario_id = ?",
-      [UID],
-  )
-
-  # Calcular métricas globales
-  mes_actual_str = date.today().strftime("%Y-%m")
-
-  gasto_mes_actual = 0.0
-  df_mes_actual = pd.DataFrame()
-  if not df_g_gen.empty:
-    df_g_gen["fecha"] = pd.to_datetime(df_g_gen["fecha"])
-    df_g_gen["mes_año"] = df_g_gen["fecha"].dt.to_period("M").astype(str)
-    df_mes_actual = df_g_gen[df_g_gen["mes_año"] == mes_actual_str]
-    gasto_mes_actual = df_mes_actual["monto"].sum()
-
-  deuda_pendiente = 0.0
-  if not df_d_gen.empty:
-    deudas_debo = df_d_gen[
-        df_d_gen["tipo"].str.contains("Debo", case=False, na=False)
-    ]
-    if not deudas_debo.empty:
-      deuda_pendiente = (
-          deudas_debo["monto_total"] - deudas_debo["monto_pagado"]
-      ).sum()
-
-  total_ahorrado = 0.0
-  if not df_m_gen.empty:
-    total_ahorrado = df_m_gen["monto_actual"].sum()
-
-  # Mostrar métricas en tarjetas principales
-  col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
-  with col_kpi1:
-    st.metric(
-        label=f"📉 Gastos del mes ({mes_actual_str})",
-        value=f"${gasto_mes_actual:,.2f}",
-    )
-  with col_kpi2:
-    st.metric(label="💳 Deudas Pendientes (Debo)", value=f"${deuda_pendiente:,.2f}")
-  with col_kpi3:
-    st.metric(
-        label="🎯 Total Ahorrado en Metas", value=f"${total_ahorrado:,.2f}"
-    )
-
-  st.markdown("---")
-
-  # SECCIÓN DE GRÁFICA Y TABLA DE RESUMEN
-  st.subheader(f"📈 Distribución de Gastos del Mes ({mes_actual_str})")
-
-  if not df_mes_actual.empty:
-    col_g1, col_g2 = st.columns(2)
-
-    with col_g1:
-      resumen_mes_gen = (
-          df_mes_actual.groupby("categoria")["monto"]
-          .sum()
-          .reset_index()
-          .rename(columns={"monto": "Gasto"})
-      )
-      # Gráfica de dona general
-      fig_gen = px.pie(
-          resumen_mes_gen,
-          names="categoria",
-          values="Gasto",
-          hole=0.4,
-          color="categoria",
-          color_discrete_map=colores_categorias,
-      )
-      fig_gen.update_layout(
-          paper_bgcolor="rgba(0,0,0,0)",
-          plot_bgcolor="rgba(0,0,0,0)",
-          font_color="#f1f5f9",
-          margin=dict(t=10, b=10, l=10, r=10),
-      )
-      st.plotly_chart(fig_gen, use_container_width=True)
-
-    with col_g2:
-      st.write("**Desglose de categorías:**")
-      resumen_mes_gen["Gasto"] = resumen_mes_gen["Gasto"].apply(
-          lambda x: f"${x:,.2f}"
-      )
-      mostrar_tabla_pro(resumen_mes_gen)
-  else:
-    st.info(f"No hay gastos registrados en el mes actual ({mes_actual_str}).")
-
-  st.markdown("---")
-
-  # Últimos movimientos
-  col_v1, col_v2 = st.columns(2)
-
-  with col_v1:
-    st.subheader("📉 Últimos Gastos Registrados")
-    if not df_g_gen.empty:
-      ultimos_gastos = sql(
-          "SELECT fecha, categoria, descripcion, monto FROM gastos WHERE"
-          " usuario_id = ? ORDER BY id DESC LIMIT 5",
-          [UID],
-      )
-      ultimos_gastos["monto"] = ultimos_gastos["monto"].apply(
-          lambda x: f"${float(x):,.2f}"
-      )
-      mostrar_tabla_pro(ultimos_gastos)
-    else:
-      st.info("Aún no hay gastos registrados.")
-
-  with col_v2:
-    st.subheader("🎯 Estado de tus Metas")
-    if not df_m_gen.empty:
-      metas_resumen = sql(
-          "SELECT titulo, monto_objetivo, monto_actual, fecha_limite FROM metas"
-          " WHERE usuario_id = ? LIMIT 5",
-          [UID],
-      )
-      metas_resumen["monto_objetivo"] = metas_resumen["monto_objetivo"].apply(
-          lambda x: f"${float(x):,.2f}"
-      )
-      metas_resumen["monto_actual"] = metas_resumen["monto_actual"].apply(
-          lambda x: f"${float(x):,.2f}"
-      )
-      mostrar_tabla_pro(metas_resumen)
-    else:
-      st.info("Aún no tienes metas registradas.")
-
 
 # ==================== APARTADO: GASTOS ====================
-elif menu == "📉 Control de Gastos":
+if menu == "📉 Control de Gastos":
   st.header("📉 Control de Gastos")
   categorias = [
       "Comida",
@@ -605,6 +465,7 @@ elif menu == "📉 Control de Gastos":
   else:
     st.info("Aún no tienes gastos registrados.")
 
+
 # ==================== APARTADO: DEUDAS ====================
 elif menu == "💳 Control de Deudas":
   st.header("💳 Control de Deudas y Préstamos")
@@ -734,6 +595,7 @@ elif menu == "💳 Control de Deudas":
         st.info(
             "Ingresa un ID válido de la lista superior para editar o borrar."
         )
+
 
 # ==================== APARTADO: METAS DE AHORRO ====================
 elif menu == "🎯 Metas de Ahorro":
@@ -874,6 +736,7 @@ elif menu == "🎯 Metas de Ahorro":
             "Ingresa un ID válido de la lista superior para editar o borrar."
         )
 
+
 # ==================== APARTADO: PRESUPUESTO MENSUAL ====================
 elif menu == "📊 Presupuesto Mensual":
   st.header("📊 Presupuesto Mensual")
@@ -1002,3 +865,142 @@ elif menu == "📊 Presupuesto Mensual":
         mostrar_tabla_pro(cat_resumen_mostrar)
     else:
       st.info(f"No hay gastos registrados en el mes de {mes_p}.")
+
+
+# ==================== APARTADO: RESUMEN GENERAL ====================
+elif menu == "📊 Resumen General":
+  st.header("📊 Resumen General de tus Finanzas")
+  st.write(
+      "Aquí tienes una vista rápida y ordenada de todo tu panorama financiero"
+      " actual."
+  )
+
+  # Cargar datos generales del usuario
+  df_g_gen = sql(
+      "SELECT fecha, categoria, monto FROM gastos WHERE usuario_id = ?", [UID]
+  )
+  df_d_gen = sql(
+      "SELECT tipo, monto_total, monto_pagado, estado FROM deudas WHERE"
+      " usuario_id = ?",
+      [UID],
+  )
+  df_m_gen = sql(
+      "SELECT monto_objetivo, monto_actual FROM metas WHERE usuario_id = ?",
+      [UID],
+  )
+
+  # Calcular métricas globales
+  mes_actual_str = date.today().strftime("%Y-%m")
+
+  gasto_mes_actual = 0.0
+  df_mes_actual = pd.DataFrame()
+  if not df_g_gen.empty:
+    df_g_gen["fecha"] = pd.to_datetime(df_g_gen["fecha"])
+    df_g_gen["mes_año"] = df_g_gen["fecha"].dt.to_period("M").astype(str)
+    df_mes_actual = df_g_gen[df_g_gen["mes_año"] == mes_actual_str]
+    gasto_mes_actual = df_mes_actual["monto"].sum()
+
+  deuda_pendiente = 0.0
+  if not df_d_gen.empty:
+    deudas_debo = df_d_gen[
+        df_d_gen["tipo"].str.contains("Debo", case=False, na=False)
+    ]
+    if not deudas_debo.empty:
+      deuda_pendiente = (
+          deudas_debo["monto_total"] - deudas_debo["monto_pagado"]
+      ).sum()
+
+  total_ahorrado = 0.0
+  if not df_m_gen.empty:
+    total_ahorrado = df_m_gen["monto_actual"].sum()
+
+  # Mostrar métricas en tarjetas principales
+  col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
+  with col_kpi1:
+    st.metric(
+        label=f"📉 Gastos del mes ({mes_actual_str})",
+        value=f"${gasto_mes_actual:,.2f}",
+    )
+  with col_kpi2:
+    st.metric(label="💳 Deudas Pendientes (Debo)", value=f"${deuda_pendiente:,.2f}")
+  with col_kpi3:
+    st.metric(
+        label="🎯 Total Ahorrado en Metas", value=f"${total_ahorrado:,.2f}"
+    )
+
+  st.markdown("---")
+
+  # SECCIÓN DE GRÁFICA Y TABLA DE RESUMEN
+  st.subheader(f"📈 Distribución de Gastos del Mes ({mes_actual_str})")
+
+  if not df_mes_actual.empty:
+    col_g1, col_g2 = st.columns(2)
+
+    with col_g1:
+      resumen_mes_gen = (
+          df_mes_actual.groupby("categoria")["monto"]
+          .sum()
+          .reset_index()
+          .rename(columns={"monto": "Gasto"})
+      )
+      fig_gen = px.pie(
+          resumen_mes_gen,
+          names="categoria",
+          values="Gasto",
+          hole=0.4,
+          color="categoria",
+          color_discrete_map=colores_categorias,
+      )
+      fig_gen.update_layout(
+          paper_bgcolor="rgba(0,0,0,0)",
+          plot_bgcolor="rgba(0,0,0,0)",
+          font_color="#f1f5f9",
+          margin=dict(t=10, b=10, l=10, r=10),
+      )
+      st.plotly_chart(fig_gen, use_container_width=True)
+
+    with col_g2:
+      st.write("**Desglose de categorías:**")
+      resumen_mes_gen["Gasto"] = resumen_mes_gen["Gasto"].apply(
+          lambda x: f"${x:,.2f}"
+      )
+      mostrar_tabla_pro(resumen_mes_gen)
+  else:
+    st.info(f"No hay gastos registrados en el mes actual ({mes_actual_str}).")
+
+  st.markdown("---")
+
+  col_v1, col_v2 = st.columns(2)
+
+  with col_v1:
+    st.subheader("📉 Últimos Gastos Registrados")
+    if not df_g_gen.empty:
+      ultimos_gastos = sql(
+          "SELECT fecha, categoria, descripcion, monto FROM gastos WHERE"
+          " usuario_id = ? ORDER BY id DESC LIMIT 5",
+          [UID],
+      )
+      ultimos_gastos["monto"] = ultimos_gastos["monto"].apply(
+          lambda x: f"${float(x):,.2f}"
+      )
+      mostrar_tabla_pro(ultimos_gastos)
+    else:
+      st.info("Aún no hay gastos registrados.")
+
+  with col_v2:
+    st.subheader("🎯 Estado de tus Metas")
+    if not df_m_gen.empty:
+      metas_resumen = sql(
+          "SELECT titulo, monto_objetivo, monto_actual, fecha_limite FROM metas"
+          " WHERE usuario_id = ? LIMIT 5",
+          [UID],
+      )
+      metas_resumen["monto_objetivo"] = metas_resumen["monto_objetivo"].apply(
+          lambda x: f"${float(x):,.2f}"
+      )
+      metas_resumen["monto_actual"] = metas_resumen["monto_actual"].apply(
+          lambda x: f"${float(x):,.2f}"
+      )
+      mostrar_tabla_pro(metas_resumen)
+    else:
+      st.info("Aún no tienes metas registradas.")
